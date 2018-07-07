@@ -1,7 +1,7 @@
 from __future__ import division
 import torch as t
 import numpy as np
-import cupy as cp
+# import cupy as cp
 from utils import array_tool as at
 from model.utils.bbox_tools import loc2bbox
 from model.utils.nms import non_maximum_suppression
@@ -165,8 +165,10 @@ class FasterRCNN(nn.Module):
             cls_bbox_l = cls_bbox_l[mask]
             prob_l = prob_l[mask]
             keep = non_maximum_suppression(
-                cp.array(cls_bbox_l), self.nms_thresh, prob_l)
-            keep = cp.asnumpy(keep)
+                np.array(cls_bbox_l), self.nms_thresh, prob_l)
+            # keep = non_maximum_suppression(
+            #     cp.array(cls_bbox_l), self.nms_thresh, prob_l)
+            # keep = cp.asnumpy(keep)
             bbox.append(cls_bbox_l[keep])
             # The labels are in [0, self.n_class - 2].
             label.append((l - 1) * np.ones((len(keep),)))
@@ -215,7 +217,7 @@ class FasterRCNN(nn.Module):
                 prepared_imgs.append(img)
                 sizes.append(size)
         else:
-             prepared_imgs = imgs 
+             prepared_imgs = imgs
         bboxes = list()
         labels = list()
         scores = list()
@@ -262,7 +264,7 @@ class FasterRCNN(nn.Module):
 
     def get_optimizer(self):
         """
-        return optimizer, It could be overwriten if you want to specify 
+        return optimizer, It could be overwriten if you want to specify
         special optimizer
         """
         lr = opt.lr
@@ -283,7 +285,3 @@ class FasterRCNN(nn.Module):
         for param_group in self.optimizer.param_groups:
             param_group['lr'] *= decay
         return self.optimizer
-
-
-
-

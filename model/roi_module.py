@@ -1,8 +1,9 @@
 from collections import namedtuple
 from string import Template
 
-import cupy, torch
-import cupy as cp
+#import cupy
+import torch
+# import cupy as cp
 import torch as t
 from torch.autograd import Function
 
@@ -11,12 +12,12 @@ from model.utils.roi_cupy import kernel_backward, kernel_forward
 Stream = namedtuple('Stream', ['ptr'])
 
 
-@cupy.util.memoize(for_each_device=True)
-def load_kernel(kernel_name, code, **kwargs):
-    cp.cuda.runtime.free(0)
-    code = Template(code).substitute(**kwargs)
-    kernel_code = cupy.cuda.compile_with_cache(code)
-    return kernel_code.get_function(kernel_name)
+# @cupy.util.memoize(for_each_device=True)
+# def load_kernel(kernel_name, code, **kwargs):
+#     cp.cuda.runtime.free(0)
+#     code = Template(code).substitute(**kwargs)
+#     kernel_code = cupy.cuda.compile_with_cache(code)
+#     return kernel_code.get_function(kernel_name)
 
 
 CUDA_NUM_THREADS = 1024
@@ -111,15 +112,17 @@ def test_roi_module():
 
     def t2c(variable):
         npa = variable.data.cpu().numpy()
-        return cp.array(npa)
+        return np.array(npa)
+        #return cp.array(npa)
 
     def test_eq(variable, array, info):
-        cc = cp.asnumpy(array)
+        # cc = cp.asnumpy(array)
+        cc = np.asnumpy(array)
         neq = (cc != variable.data.cpu().numpy())
         assert neq.sum() == 0, 'test failed: %s' % info
 
     # chainer version,if you're going to run this
-    # pip install chainer 
+    # pip install chainer
     import chainer.functions as F
     from chainer import Variable
     x_cn = Variable(t2c(x))

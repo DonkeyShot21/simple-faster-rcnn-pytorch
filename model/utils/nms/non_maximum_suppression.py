@@ -1,6 +1,6 @@
 from __future__ import division
 import numpy as np
-import cupy as cp
+# import cupy as cp
 import torch as t
 try:
     from ._nms_gpu_post import _nms_gpu_post
@@ -8,17 +8,17 @@ except:
     import warnings
     warnings.warn('''
     the python code for non_maximum_suppression is about 2x slow
-    It is strongly recommended to build cython code: 
+    It is strongly recommended to build cython code:
     `cd model/utils/nms/; python3 build.py build_ext --inplace''')
     from ._nms_gpu_post_py import _nms_gpu_post
 
 
-@cp.util.memoize(for_each_device=True)
-def _load_kernel(kernel_name, code, options=()):
-    cp.cuda.runtime.free(0)
-    assert isinstance(options, tuple)
-    kernel_code = cp.cuda.compile_with_cache(code, options=options)
-    return kernel_code.get_function(kernel_name)
+# @cp.util.memoize(for_each_device=True)
+# def _load_kernel(kernel_name, code, options=()):
+#     cp.cuda.runtime.free(0)
+#     assert isinstance(options, tuple)
+#     kernel_code = cp.cuda.compile_with_cache(code, options=options)
+#     return kernel_code.get_function(kernel_name)
 
 
 def non_maximum_suppression(bbox, thresh, score=None,
@@ -72,14 +72,16 @@ def non_maximum_suppression(bbox, thresh, score=None,
 
 def _non_maximum_suppression_gpu(bbox, thresh, score=None, limit=None):
     if len(bbox) == 0:
-        return cp.zeros((0,), dtype=np.int32)
+        return np.zeros((0,), dtype=np.int32)
+        # return cp.zeros((0,), dtype=np.int32)
 
     n_bbox = bbox.shape[0]
 
     if score is not None:
         order = score.argsort()[::-1].astype(np.int32)
     else:
-        order = cp.arange(n_bbox, dtype=np.int32)
+        order = np.arange(n_bbox, dtype=np.int32)
+        # order = cp.arange(n_bbox, dtype=np.int32)
 
     sorted_bbox = bbox[order, :]
     selec, n_selec = _call_nms_kernel(
@@ -88,7 +90,8 @@ def _non_maximum_suppression_gpu(bbox, thresh, score=None, limit=None):
     selec = order[selec]
     if limit is not None:
         selec = selec[:limit]
-    return cp.asnumpy(selec)
+    return selec
+    #return cp.asnumpy(selec)
 
 
 _nms_gpu_code = '''
@@ -166,11 +169,15 @@ def _call_nms_kernel(bbox, thresh):
     blocks = (col_blocks, col_blocks, 1)
     threads = (threads_per_block, 1, 1)
 
-    mask_dev = cp.zeros((n_bbox * col_blocks,), dtype=np.uint64)
-    bbox = cp.ascontiguousarray(bbox, dtype=np.float32)  # NOTE: 变成连续的
+    mask_dev = np.zeros((n_bbox * col_blocks,), dtype=np.uint64)
+    bbox = np.ascontiguousarray(bbox, dtype=np.float32)
+    # mask_dev = cp.zeros((n_bbox * col_blocks,), dtype=np.uint64)
+    # bbox = cp.ascontiguousarray(bbox, dtype=np.float32)  # NOTE: 变成连续的
     kern = _load_kernel('nms_kernel', _nms_gpu_code)
-    kern(blocks, threads, args=(cp.int32(n_bbox), cp.float32(thresh),
+    kern(blocks, threads, args=(np.int32(n_bbox), np.float32(thresh),
                                 bbox, mask_dev))
+    # kern(blocks, threads, args=(cp.int32(n_bbox), cp.float32(thresh),
+    #                             bbox, mask_dev))
 
     mask_host = mask_dev.get()
     selection, n_selec = _nms_gpu_post(
